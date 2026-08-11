@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Socket Chat</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+</head>
+
+
+<body>
+
+
+<div class="chat-container">
+
+
+    <!-- Header -->
+
+    <div class="header">
+
+        <div>
+
+            <h2>Socket Chat</h2>
+
+            <span id="status">
+                Connecting...
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- Messages -->
+
+    <div id="messages"
+         class="messages">
+
+    </div>
+
+
+    <!-- Input -->
+
+    <div class="input-area">
+
+        <input
+            type="text"
+            id="message"
+            placeholder="Type a message..."
+            autocomplete="off"
+        >
+
+        <button onclick="sendMessage()">
+            Send
+        </button>
+
+    </div>
+
+
+</div>
+
+
+<!-- Username popup -->
+
+<div id="username-screen"
+     class="username-screen">
+
+    <div class="username-box">
+
+        <h2>Join Chat</h2>
+
+        <input
+            type="text"
+            id="username"
+            placeholder="Enter your name"
+        >
+
+        <button onclick="joinChat()">
+            Join
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+
+const socket = io();
+
+let myUsername = "";
+
+
+/* -------------------------------
+   Connection
+-------------------------------- */
+
+socket.on("connect", function () {
+
+    document.getElementById("status").innerText =
+        "Connected";
+
+});
+
+
+socket.on("disconnect", function () {
+
+    document.getElementById("status").innerText =
+        "Disconnected";
+
+});
+
+
+/* -------------------------------
+   Join Chat
+-------------------------------- */
+
+function joinChat() {
+
+    const usernameInput =
+        document.getElementById("username");
+
+    myUsername =
+        usernameInput.value.trim();
+
+
+    if (myUsername === "") {
+
+        alert("Please enter your name");
+
+        return;
+
+    }
+
+
+    // Send username to server
+
+    socket.emit(
+        "join",
+        myUsername
+    );
+
+
+    // Hide username screen
+
+    document.getElementById(
+        "username-screen"
+    ).style.display = "none";
+
+
+    document.getElementById(
+        "message"
+    ).focus();
+
+}
+
+
+/* -------------------------------
+   Receive Chat Message
+-------------------------------- */
+
+socket.on(
+    "chat_message",
+    function (data) {
+
+
+        const messages =
+            document.getElementById(
+                "messages"
+            );
+
+
+        const messageBox =
+            document.createElement(
+                "div"
+            );
+
+
+        /*
+        Check who sent the message
+        */
+
+        if (
+            data.username === myUsername
+        ) {
+
+            messageBox.className =
+                "message sent";
+
+        }
+        else {
+
+            messageBox.className =
+                "message received";
+
+        }
+
+
+        messageBox.innerHTML = `
+
+            <div class="username">
+                ${data.username}
+            </div>
+
+            <div>
+                ${data.message}
+            </div>
+
+        `;
+
+
+        messages.appendChild(
+            messageBox
+        );
+
+
+        // Scroll to bottom
+
+        messages.scrollTop =
+            messages.scrollHeight;
+
+    }
+);
+
+
+/* -------------------------------
+   System Messages
+-------------------------------- */
+
+socket.on(
+    "system_message",
+    function (message) {
+
+
+        const messages =
+            document.getElementById(
+                "messages"
+            );
+
+
+        const messageBox =
+            document.createElement(
+                "div"
+            );
+
+
+        messageBox.className =
+            "system-message";
+
+
+        messageBox.innerText =
+            message;
+
+
+        messages.appendChild(
+            messageBox
+        );
+
+
+        messages.scrollTop =
+            messages.scrollHeight;
+
+    }
+);
+
+
+/* -------------------------------
+   Send Message
+-------------------------------- */
+
+function sendMessage() {
+
+
+    const input =
+        document.getElementById(
+            "message"
+        );
+
+
+    const message =
+        input.value.trim();
+
+
+    if (message === "") {
+
+        return;
+
+    }
+
+
+    socket.emit(
+        "chat_message",
+        {
+
+            username:
+                myUsername,
+
+            message:
+                message
+
+        }
+    );
+
+
+    input.value = "";
+
+    input.focus();
+
+}
+
+
+/* -------------------------------
+   Enter Key
+-------------------------------- */
+
+document
+    .getElementById("message")
+    .addEventListener(
+        "keypress",
+        function(event) {
+
+            if (
+                event.key === "Enter"
+            ) {
+
+                sendMessage();
+
+            }
+
+        }
+    );
+
+
+</script>
+
+
+</body>
+
+</html>
